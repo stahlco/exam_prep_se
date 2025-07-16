@@ -21,9 +21,28 @@
 
 *A collaborative document editing service (like Google Docs) needs to handle concurrent edits from multiple users. What consistency model and replication approach would you recommend?*
 
+<img width="1195" height="619" alt="image" src="https://github.com/user-attachments/assets/c88bf15a-8100-4984-9a90-eda1e933096b" />
+
+- Consistency Model (Different Consistency Views):
+- Client-Centric-Consistency: From the prespective of the user the data feels consistent
+  - Read-Your-Writes: If you write something, reading that data always returns your most recent write.
+  - Write-Follows-Reads: A client that reads version X and then updates the same data item, will only update replicas that have at least version X.
+  - Monotonic-Reads: A read will never return older values than previously returned to the same client.
+  - Monotonic-Writes: If you write after another write, the writes should always be commited in the correct order.
+ 
+  => If all Client-Centric-Consistency-Models
+ 
+- Data-Centric-Consistency: From the perspective of replicas
+- Replication Approach:
+
 ## Data Distribution & Sharding
 
 *You're designing a messaging system like WhatsApp. How would you shard user conversations to ensure scalability while avoiding cross-shard queries?*
+
+- Sharding based on logical attributes: Users on a shard, 
+- Range Sharding: Alphabet, ...
+
+- Sharding: 
 
 *An e-commerce platform is experiencing hot spots where certain product categories get much more traffic. What sharding strategy would you implement?*
 
