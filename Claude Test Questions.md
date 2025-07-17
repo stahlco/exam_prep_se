@@ -59,6 +59,10 @@ Key-based sharding, Product category can be split into the products, and the pro
 
 *A social media platform notices that posts from celebrity accounts generate massive traffic spikes while regular user posts have minimal engagement. What sharding strategy would you implement?*
 
+- Key-Based Sharding, equal -> distribution
+- Directory-based Sharding based on Metrics of the Server
+- Implement Shuffle Sharding
+
 *A financial trading system experiences extreme load during market opening hours but is relatively quiet during off-hours. What sharding strategy would you implement?*
 
 *A content streaming service finds that certain regions consume 80% of bandwidth while others use very little. What sharding strategy would you implement?*
