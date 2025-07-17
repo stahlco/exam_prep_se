@@ -48,6 +48,12 @@
 
 *An e-commerce platform is experiencing hot spots where certain product categories get much more traffic. What sharding strategy would you implement?*
 
+*A social media platform notices that posts from celebrity accounts generate massive traffic spikes while regular user posts have minimal engagement. What sharding strategy would you implement?*
+
+*A financial trading system experiences extreme load during market opening hours but is relatively quiet during off-hours. What sharding strategy would you implement?*
+
+*A content streaming service finds that certain regions consume 80% of bandwidth while others use very little. What sharding strategy would you implement?*
+
 ## CAP Theorem & PACELC in Practice
 
 *Your system currently prioritizes consistency over availability. Business requirements change to demand 99.99% uptime globally. How would you redesign the system architecture?*
