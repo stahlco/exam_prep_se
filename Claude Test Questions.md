@@ -59,23 +59,29 @@ Key-based sharding, Product category can be split into the products, and the pro
 
 *A social media platform notices that posts from celebrity accounts generate massive traffic spikes while regular user posts have minimal engagement. What sharding strategy would you implement?*
 
-- Key-Based Sharding, equal -> distribution
+- Key-Based Sharding, equal -> widely distributed
 - Directory-based Sharding based on Metrics of the Server
 - Implement Shuffle Sharding
-
-*A financial trading system experiences extreme load during market opening hours but is relatively quiet during off-hours. What sharding strategy would you implement?*
-
-*A content streaming service finds that certain regions consume 80% of bandwidth while others use very little. What sharding strategy would you implement?*
 
 ## CAP Theorem & PACELC in Practice
 
 *Your system currently prioritizes consistency over availability. Business requirements change to demand 99.99% uptime globally. How would you redesign the system architecture?*
 
+- Sacrifice Consistency for Availability during a network partition -> Still remain eventual consistency
+- 
+
 *During a network partition, your distributed database must choose between availability and consistency. Walk through your decision-making process for different types of applications (banking vs social media).*
+
+- Banking: Demands Consistency (sensible data - remain a global consistent state). Altough availability is important on a day to day basis, when a network partition occures or any other kind of failure, the bank can sacrifice consistency for availability.
+- Social Media: Demands Availability (not so sensible data - data can easily be stale). Social Media can easily be eventual consistent and still serve requests 
+and remain available
+  
 
 ## Stateful vs Stateless Components
 
 *You're migrating a legacy application with heavy session state to a cloud-native architecture. What's your strategy for separating stateful and stateless components?*
+
+- 
 
 *A gaming platform needs to scale player session management across multiple regions. How would you architect this to be both scalable and performant?*
 
