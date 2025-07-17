@@ -47,6 +47,15 @@
 - Sharding: 
 
 *An e-commerce platform is experiencing hot spots where certain product categories get much more traffic. What sharding strategy would you implement?*
+Sharding Strategies:
+- Range-based sharding: 
+- Key-based sharding:
+- Directory-based sharding:
+- Geographic sharding:
+- Natural sharding (if possible):
+
+Key-based sharding, Product category can be split into the products, and the products can be distributed based on hashing algorithms
+
 
 *A social media platform notices that posts from celebrity accounts generate massive traffic spikes while regular user posts have minimal engagement. What sharding strategy would you implement?*
 
