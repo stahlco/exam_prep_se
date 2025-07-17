@@ -1,0 +1,380 @@
+# 1 retries and backoff, jitter
+- timeouts can be caused by overload (timeout and retries)
+- backoffs can solve the problem
+	- but it can be a problem if all clients fail at the same time and then retry at the same time
+	- load spikes
+- jitter: add randomness to the backoff value (but using a deterministic approach for choosing this value can be helpful to identify patterns and debug)
+- retries can mask failure but can also hide underlying issues (make problem worse)
+- with deep call stacks it is sometimes useful to retry at one layer only to avoid greatly increasing the load of downstream service
+
+
+# 2 leader election
+- leader election gives one component "special powers"
+- leaders are easier to implement, think about, efficient, and consi
+- how does amazon do it
+	- leases: global duration based lock which determines the leader
+	- current leader must renew its lease frequently via heartbeating
+	- it is hard to implement that only the elected leader actually acts as a leader (think about partitioning, slow network)
+- Best practices for leader election
+	- check remaining time frequently
+	- consider slow network, timeouts, retries
+	- avoid heartbeating in background thread
+	- monitor leader with reliable resources
+	- keep log of leadership changes
+
+# 3 load shedding
+- part of graceful degradation
+- stops serving every request to prevent crash
+	- choses requests to serve
+- difficult to set fixed limits
+- settings need dynamic adjustment
+- latency increases with **throughput**
+- universal scalability law: throughput can be increased by using parallelization but are limited by tasks that cant be parallelized
+- latency can turn into an availability issue when client timeouts are shorter than the  latency for a request
+- throughput vs goodput (what do weg get, what can we serve)
+- by going down in availability (shedding load) we can keep latency low and reliably solve the taken requests
+	- when load is high we dont want to waste work on requests (e.g. not finish them before they time-out)
+- with load shedding: at some point the cost of rejecting takes over
+- fast dropping leads to fast retries (consider backoff, jitter etc) -> can be helpful to sync the latency of failed requests with those of successful ones to not send the incoming retry to a server that might already be overloaded
+- load shedding can conflict with autoscaling (e.g. when the autoscaling is based on CPU load)
+
+- prioritizing requests
+	- web crawlers > human
+	- ping > others
+	- e.g. shopping checkout requests > others (will decrease load overall) -> session end > session start
+- all services should use the same heuristics
+
+- clients should provide a timeout hint (server can drop requests with unsatisfiable deadlines)
+	- BUT
+		- time sync difficult in distributed systems
+		- estimating processing time
+	- networking is not accounted for when a server is using a stopwatch to measure latency 
+
+- queues
+	- limit size
+	- limit age (req too old)
+	- LIFO in some scenarios (are the most likely to succeed)
+	- monitor queues
+
+- protecting the service from overload
+	- load balancers
+	- http proxies (nginx)
+	- os firewall (iptables)
+
+- dont waste work
+	- return large data in chunks (pagination)
+	- easier to estimate 
+	- prioritize requests: finish before starting new sessions
+
+
+- test until it breaks (push it further beyond full utilization)
+	- find limits / bottlenecks
+	- only **necessary** load shedding
+	- differentiate successful and failed requests for latency
+- techniques
+	- chaos monkey
+	- manually removing instances (will increase load on those left)
+
+- normally open source systems dont have load shedding implemented
+
+# 4 isolation using shuffle sharding 
+- sharding: splitting servers into shards (multiple servers into one shard)
+	- tenants are distributed across shards
+	- redundant and better isolation than no sharding
+- shuffle sharding
+	- each tenant gets own virtual shard (chooses two servers)
+
+
+- choose shard size
+	- K small: smaller blast radius
+	- K big: full overlap less likely
+- querier forget delay
+	- how long until a crashed server gets replaced
+
+- other considerations
+	- nested shuffle sharding, shard at multiple layers
+	- random allocation vs stateful allocation
+
+# 5 making retries safe with idempotent apis
+- primitive retries can cause duplicate side effects
+- client side retry logic often becomes complex
+
+- AWS solution: client tokens (unique client provided request identifier)
+	- how can a server distinguish a retry from a new request
+	- server treats requests with the same token as idempotent
+	- enables automatic safe retries (no logic on client side needed) -> "every error that isnt an validation error can be solved by retrying form the clients perspective"
+
+- considerations
+	- identifying the right operations
+	- define the scope of a logical operation
+- monitoring
+- semantically equivalent responses are important (all requests return same reply, no matter if retry)
+
+- for first request a token is generated by aws if it fails and returns it to the client, who can then retry with it (client can alternatively also provide a token for the initial call, which is used with client id to make the session token)
+
+
+- edge cases
+	- late retries (e.g. retry might arrive after resource was deleted)
+	- changed params with same token (validation error)
+	- token lifespan: tokens are only stored temporarily
+	- ensures predictable behaviour even in rare failure situations
+
+- enables reliable automation, simpler clients, improved developer experience
+
+# 6 caching strategies and challenges
+- caching: storing previously computed data in a fast access storage layer so that future served requests are faster and there is less load on the service
+
+- careful: caching can be a helpful strategy but its supposed to be supportive, not essential -> we dont want to be dependent on our cache for our service to work 
+
+- best when?
+	- high computation
+	- slowly changing data -> we have cache hits -> if data changes fast cache is no good and only causes additional computation
+- local cache (on-box)
+	- fast and easy to implement (in-memory hash-table)
+	- cache inconsistency across servers in distributed systems (when one call talks to one server and another to another server the results can be different e.g. with eventually consistent databases newer calls can deliver older data)
+	- cold start problems (new server first has to fill cache)
+	- bound by RAM and fleet size
+- external caches
+	- fallback to local if external fails
+	- load shedding: limit requests to protect downstream services
+- inline / side cache
+	- inline: between client / database
+		- easy to implement since it can be changed as needed and api from client side does not change
+		- but its also on critical path -> cache down = app down
+	- side: cache is set at different position
+
+- key challenges
+	- picking three things right
+		- expiration policy
+			- soft TTL (normal mode), hard TTL (dependency is down then cache will be used until hard limit is reached OR load is high and we value availability over actuality-> failure mode), combined
+		- cache size
+		- eviction policy (what policies are there)
+	- 
+
+- considerations
+	- negative cashing (cache errors)
+	- optionally serve stale data if backend is unavailable (better than none?)
+	- many clients request same uncached resource at once
+	- cache poisoning
+
+- best practices
+	- justify use of caching (cost, latency, availability)
+	- monitor cache 
+
+# 7 challenges with distributed systems
+- what kinds of distributed systems are there
+- network communication is often needed
+- error handling complicated (also unknown state)
+- test cases: explosion of scenarios to test for because of many possible errors
+
+
+# 8 Insurmountable queue backlogs
+- producer only dependent on availability of the queue not the consumer
+- slow mode -> high queue backlog increase end to end latency (hard to reduce this backlog again)
+- backlog build up can be handled by increasing computation power to catch up with backlog
+	- for some services that might be a problem if they dont have those additonal resources available
+	- async systems -> queue backlog build up during unavailability
+	- sync systems -> start dropping requests during unavailability
+- especially in the IoT world we want devices that went offline brought back up to speed after they come back online
+
+- when measuring availability in an async system, looking at it from the consumer POV might not be helpful since failures followed by successful retries can skew the statistics
+	- DLQ could be helpful but gives us the info too late
+
+- we want to prevent this happening in the first place
+	- plan buffer resource so that spikes dont cause a backlog
+	- dynamically restrict message insertion so that queue size cant build up to insurmountability
+		- how can we handle fairness 
+		- trade off (availability for recoverability) -> cant insert at all times but when i can its more reliable 
+
+- sideline messages into different queues (work on it following certain conditions) -> e.g. nightshift
+	- prioritize live service messages
+
+- queue seperation
+	- separate queues for separate producers / jobs (but dont use too many queues because at some point polling all the queues in the consumer doesnt scale well)
+	- activity spikes dont affect other workloads
+	- also possible with shuffle sharding (one customers workload will only partially affect any other customer)
+
+- avoid preemptive redeliveries
+	- when messages take a long time to be processed we dont want to just resend (makes problem worse)
+	- use heartbeats to ensure messages are alive so that multiple consumer dont work on one message
+
+
+# Avoiding fallbacks in distributed systems
+- failures are common
+
+- 4 stretegies to cope
+	- retries
+	- proactive retries (send many requests in parallel and take first successful one)
+	- Failover (same thing if first thing fails -> e.g. replication in databases, more of the same)
+	- fallback (simulate same thing with different tech)
+
+- why bad
+	- fallbacks are hard to test
+	- fallbacks can also fail
+	- trade offs are dangerous (why do we use fallback as fallback -> is it worse -> if not why dont we just use it)
+	- often aggravate the outage (more chaos)
+	- causes latent bugs
+
+- how to avoid fallbacks
+	- improve the reliability of the primary path
+	- let calling system handle failures
+	- push data proactively
+	- convert fallback into failover
+	- ensure that retries and timeouts do not become fallbacks
+
+- if you need to use it test it (e.g. chaos monkey)
+- fallback is bad because it is only triggered in a chaotic system mode and tends to only make the chaos worse
+
+
+# fairness in multi tenant systems
+- what is it: in multi tenant system every client should feel like single tenant
+- tasks:
+	- find spots for new workloads
+	- move workloads around to use computation efficiently
+	- monitor overall fleet utilization and add and remove resources as needed
+	- allow for flexibility (no hard resource constraints)
+
+- how:
+	- load shedding preferred over overload (fast fails to give autoscaling time to add new resources)
+	- protect from noisy neighbors -> load shedding alone not enough, we need to enforce quotas so that a high workload of one tenant will not affect the others
+		- quotas are also enforced by just dropping requests (usually 429-> client side fault)
+		- safe bursting: if we have the resources we can use them (similar to our article)
+
+- ! difference between quotas for cost and quotas for computation resource protection
+
+- Admission Control Systems: systems that shape traffic (shedding, quotas etc)
+	- at amazon often multiple layers of these systems are used in combination to shield from overload
+
+- Local admission control via token buckets
+	- are filled with tokens at configurable rate
+	- often two buckets (one high rate, low cap -> normal mode, other low rate, high cap, burst mode)
+
+- distributed admission control
+	- we need to handle uniform traffic differently from non-uniform one in the way we use load balancers to spread load across servers
+	- we need to be able to act reactively to handle all sorts of different and changing requirements to admission control
+
+- high vs low-cardinality
+	- with low we can keep track of every key and explicitly set and change the admissions
+	- for high (ipv6 adresses, db rows) we need other algorithms to implement admission control because otherwise it would take up too much memory (e.g. heavy hitters, top talkers)
+
+# avoiding overload in distr systems
+- core challenge: small cp communicates wih larger dp plane
+	- tldr: put the smaller service in control (using intermediaries, inverting control, decoupled discovery)
+
+- client initiated model
+	- data plane pulls from control plain via api calls
+	- easy to implement
+	- but overload risk when bugs in dataplane lead to higher frequency of API calls
+	- recovery leads to increased calls
+	- retry storms
+	- at a certain point of throughput, goodput starts to drop
+- idea: s3 as an intermediary
+	- cp fleet can be small even as dp grows
+	- even when cp fails the dataplane can run on the last available information (static stability)
+	- but: dynamic systems (write everything to s3 all the time) has high overhead
+
+- control plane pushes updates (instead of dp pulling)
+	- reverse flow; smaller fleet to bigger one
+	- more resilient to overload, cp dictates pace
+	- but how can we handle unreachable dps and ensure everybody gets an update
+		- --> use consistent hashing (similar to leader election)
+		- cp heartbeats into shared storage where other cps are scanning and from the cps they find they calculate a consistent hash to determine which part of the dp servers it is responsible for
+
+- decoupled discovery and control flow
+	- dp initiates long lived connections and cp makes api calls over that connection
+	- is resilient
+	- no need for cp to manage dp inventory
+	- but requires more sophisticated comm protocol
+
+
+# Instrumenting distributed systems for operational visibility
+- instrumentation
+	- logging, measuring and logging duration of operation
+
+- what to measure
+	- interactions with other systems
+	- request outcomes
+	- we want to have one log per "unit of work"
+
+- different depth levels
+	- aggregated metrics (only go deeper when needed)
+	- raw logs of the service
+
+- log data types
+	- request data -> structured data
+	- debugging data -> unstructured data (human readable)
+
+- tooling: 
+	- use standardized tools across teams / services etc. (e.g. http clients that have instrumentation implemented)
+
+- best practices (are different for structured and unstructured \[-> application\] logs)
+	- log one clear sanitized entry per unit of work
+	- break long running tasks into multiple log entries
+	- edge cases (high traffic, disk limits)
+	- use concise metrics names
+	- allow to increase verbosity
+	- synchronize clocks
+
+- what to log
+	- log availability of dependencies
+	- organize by category of cause (per call, resource, status-code)
+		- also counters for every error reason can be helpful
+	- log queue depth while at it
+	- log metadata
+	- protect logs
+	- rate limit loggers
+
+- high throughput services
+	- log sampling (log every nth entry)
+	- offload log handling
+	- rotate logs frequently
+
+- implement ASAP to avoid problems later
+
+# Constant work and a good cup of coffee
+- constant work (always ready) -> same for three as 300 requests
+- system does same amount of work under all conditions
+
+- why? -> anti-fragility
+	- simple (same logic at all times)
+	- reliable (dont panic under pressure)
+	- self healing (fixes problem automatically)
+	- -> avoid overload 
+
+- health checkers sends constant health checks to the dns servers
+	- results are aggregated in the same way every time 
+	- aggregates are pushed to route 53 the same way
+	- route 53 makes same computation every time
+	- important to stick to the pattern (no weak links)
+
+- aws hyperplane is configured by writing config to s3 and then from there it is periodically read and applied (even if nothing changes)
+- the config file always has the same size, no matter how big the configuration actually is (dummy data)
+
+- self healing works because the systems start from a clean plate for every iteration (when something went wrong it will be fixed in the next iteration without any backlog)
+
+- when to use constant work? failure is not an option
+- this approach is not universally useful / applicable
+
+- dynamic systems when efficiency and ...
+
+
+# Minimizing correlated failures in distributed systems
+- what are correlated failures -> failures cause other failures
+	- e.g. shared dependencies can cause unrelated systems to fail
+	- BUT correlated != cascading -> correlated means that the components are independent
+
+- what can we do?
+	- introduce regions to not have entire system fail when something goes wrong
+	- introduce availability zones (isolated data centers)
+
+- non infrastructure failures (differentiate hardware and software)
+	- we dont want to perform actions / patches etc. on all servers at the same time
+	- velocity control, failsafe operations
+
+- software failures due to common (bugged) software
+
+- identical failure behaviour
+	- many systems jump to same failure handling behaviour when something goes wrong -> can cause overload
+	- randomness / jitter (can not just be used for API calls but also "cron jobs" etc)
+
+- we cant prevent the failure, we can only mitigate / handle it as well as possible
