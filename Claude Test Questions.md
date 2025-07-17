@@ -39,8 +39,10 @@
 
 *You're designing a messaging system like WhatsApp. How would you shard user conversations to ensure scalability while avoiding cross-shard queries?*
 
-- Sharding based on logical attributes: Users on a shard, 
-- Range Sharding: Alphabet, ...
+- Sharding users and chats independently:
+  - Range-based
+- Sharding based on logical attributes: Users on a shard, Chats on another shard 
+- Key
 
 - Sharding: 
 
