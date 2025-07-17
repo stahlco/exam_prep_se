@@ -80,8 +80,9 @@ and remain available
 ## Stateful vs Stateless Components
 
 *You're migrating a legacy application with heavy session state to a cloud-native architecture. What's your strategy for separating stateful and stateless components?*
-
-- 
+- How would you seperate stateful and stateless components?
+- Stateful components, levarge vertical scaling for stateful components as much as possible
+- Stateless components, should be migrated in some cloud-native stateless service (FaaS) to scale as much as possible
 
 *A gaming platform needs to scale player session management across multiple regions. How would you architect this to be both scalable and performant?*
 
