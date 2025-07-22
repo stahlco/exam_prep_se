@@ -44,3 +44,11 @@ Your HTTP-based service suddenly experiences a traffic surge beyond its capacity
 
 	10.	(5 points) Shuffle Sharding for Fault Isolation:
 In a multi-tenant service, suppose one tenant (customer) is hit by a large spike of requests (or a DDoS attack). Explain how shuffle sharding can isolate this tenant’s workload so other tenants are not impacted. Sketch a simplified example (e.g. 8 identical workers and 4 tenants) showing how you assign a random subset (“virtual shard”) to each tenant. How does this reduce the “blast radius” of failures?
+
+	11.	(5 points) Idempotent APIs for Safe Retries:
+Consider a non-idempotent operation, for example “CreateOrder”, that charges a customer. 
+Describe how you would design an idempotent version of this API so that CreateOrder can be retried safely without duplicating work. 
+What information would the client send, and how would the server use it to detect duplicate requests? Why are caller-provided idempotency tokens useful in this scenario?
+
+	12.	(5 points) Fairness in Multi-Tenant Services:
+A shared service hosts requests from multiple customers. One customer suddenly starts sending far more requests than usual. Explain how you would enforce fairness so that the overloaded customer doesn’t starve others. Describe the role of quotas or per-tenant limits and the difference between rejecting excess requests vs. letting them fail. How should the service communicate a “quota exceeded” error (e.g. HTTP 429 vs 503), and why?
