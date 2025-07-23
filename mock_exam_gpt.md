@@ -1,3 +1,31 @@
+## Questions Easy
+
+Why does AWS recommend adding jitter to backoff strategies when retrying requests?
+
+What is static stability and why is it important for high-availability systems?
+
+
+
+## **Questions Hard**
+You're designing a high-throughput service that calls a downstream payment gateway with unpredictable latency. What kind of retry strategy would you implement based on AWS guidance
+
+You're building a service that aggregates user data from 200 microservices. Initially, the fan-out causes latency and scaling issues. How does shuffling shards reduce this load, and in what kind of workload does this technique become essential?
+
+You need to run a daily cleanup job that deletes stale cache entries across multiple regions. Why is leader election + heartbeats a better choice than a cron job on one instance, and how would you handle failover in this architecture?
+
+You're deploying a new version of a service that changes data schemas. How would you structure your deployment and rollout strategy to ensure rollback safety, especially in a multi-team environment where clients might still rely on older versions of the API?
+
+Your API service is experiencing a surge in traffic due to a flash sale. Explain how load shedding helps achieve static stability, and how you would decide which requests to drop under pressure?
+
+You need to migrate from a monolithic backend to multiple microservices without downtime. How does keeping a stable API at the load balancer layer support this evolution, and what patterns would AWS recommend to decouple old and new systems during this process?
+
+A downstream ML model inference service has unpredictable latency spikes. Why should the caller control the timeout, and what risks arise if the callee tries to determine its own timeout?
+
+You’re using a leader-based distributed store. Under network partition, some nodes still respond as leader. What are the dangers of leader stickiness, and how does AWS avoid this risk in critical services?
+
+
+
+
 ## **Questions**
 
 1. **(4 pts)** A startup runs its application on a powerful single server but expects growing traffic. It wonders whether to scale up (vertically) or scale out (horizontally). Under what conditions is vertical scaling appropriate, and when should horizontal scaling be planned? Explain any caveats.
